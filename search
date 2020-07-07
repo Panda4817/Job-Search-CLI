@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+import requests
+import click
+import pyfiglet
+from bs4 import BeautifulSoup
+from urllib.parse import urlencode
+import time
+
+# Avoid list containing words/phrases to avoid in description text
+avoid = [
+    'commercial experience',
+    'commercial environment',
+    'experienced',
+    'not entry-level',
+    'not entry level',
+    'degree in computer science',
+    'degree in computing',
+    'degree in computing/engineering',
+    'degree computing',
+    'degree computing/engineering',
+    'degree in a quantitative subject',
+    '2.1 or above in computer Science',
+    'computer science',
+    'top-tier',
+    'russel-group',
+    'russel group',
+    'top tier',
+    'junior to mid-level',
+    'junior to mid level',
+    'apprentice',
+    'contract',
+    'immediate start',
+    'experience working in agile environments',
+    'experience working in an agile environment',
+    'experience as a',
+    'years of experience',
+    'years experience',
+    'years',
+    'years (required)',
+    'yrs',
+    'year (preferred)',
+    'years (preferred)',
+    'year (required)',
+    'professional experience',
+    'practising agile methodologies',
+    'mid/senior',
+    'snr',
+    'senior',
+    'degree in a Maths, Science of Engineering',
+    'degree with high computing or mathematical content',
+    'commercial software engineering experience',
+    'coming from a similar background where you have experience',
+    'expert level',
+    'internship',
+    'Work experience in at least',
+]
+
+# Function to create a progress bar
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    # Print New Line on Complete
+    if iteration == total: 
+        print()
+
+# Function to check description of job for words in avoid and extra words put in by the user
+def checkJob(txt, haves):
+    global avoid
+    
+    #  Lowercase text for easy comparision
+    lowertext = txt.lower()
+    
+    # Check for avois words, if one is found return false
+    for word in avoid:
+        if word in lowertext:
+            return False
+    
+    # Keep a score of words found from the extra words list from user
+    score = 0
+
+    # Check if any extra words were put in
+    if haves != None:
+
+        # If so go through description and check for those words
+        arr = haves.split(",")
+        for word in arr:
+            if word in lowertext:
+                score += 1
+        if score > 0:
+            return {"score": score, "check": True}
+        else:
+            return False
+    
+    # Else return the job with score of 0 and true if no extra words
+    else:
+        return {"score": score, "check": True}
+
+# Check title for avoid words
+def checkTitle(txt):
+    global avoid
+    lowertext = txt.lower()
+    for word in avoid:
+        if word in lowertext:
+            return False
+    return True
+
+# Main function the scrapes data from indeed website
+def search_indeed(keyword, location, extra):
+    # results list
+    potential_jobs = []
+
+    # prepeare keywords, location words and extra words to put into url
+    karr = keyword.split(",")
+    k_str = " ".join(karr)
+    larr = location.split(",")
+    l_str = " ".join(larr)
+    input_ = {'q': k_str, 'l': l_str}
+    input_str = urlencode(input_)
+
+    # Do a search and retrieve page 1
+    firstURL = 'https://www.indeed.co.uk/jobs?' + input_str + '&radius=25&filter=0'
+    print(firstURL)
+    firstpage = requests.get(firstURL)
+    firstsoup = BeautifulSoup(firstpage.content, 'html.parser')
+
+    # Store information about page in a variable to compare in the loop below ans number of pages is unknown
+    prevcount = firstsoup.find(id='searchCountPages').text.strip()
+    # Set up progress bar
+    printProgressBar(0, 1010, prefix = 'Progress:', suffix = 'Complete', length = 100)
+
+    # Loop through each page (max pages of 101 using index of entry (max is 1010))
+    for i in range(0, 1010, 10):
+        # Get data from each page
+        URL = 'https://www.indeed.co.uk/jobs?' + input_str + '&radius=25&filter=0&start='+ str(i)
+        page = requests.get(URL)
+        soup = BeautifulSoup(page.content, 'html.parser')
+        results = soup.find(id='resultsCol')
+        count = soup.find(id='searchCountPages').text.strip()
+        # Comapre page number information and check it is not equal to last page if so you've reached the last page and search can end
+        if count == prevcount and i > 0:
+            break
+        # Retrieve all results from that page
+        job_elems = results.find_all('div', class_='jobsearch-SerpJobCard')
+        # Loop through the jobs and perform the searches
+        for job_elem in job_elems:
+            title = job_elem.find('a', class_='jobtitle').text.strip()
+            if checkTitle(title):
+                x = job_elem.get('data-jk')
+                url = 'https://www.indeed.co.uk/viewjob?jk='+ x
+                info_page = requests.get(url)
+                soupJob = BeautifulSoup(info_page.content, 'html.parser')
+                descriptionText = soupJob.find(id='jobDescriptionText')
+                if descriptionText != None:
+                    if checkJob(descriptionText.text, extra) != False:
+                        result = checkJob(descriptionText.text, extra)
+                        # Check for duplicate job entries before appending it to finished list
+                        duplicate_check = False
+                        for job in potential_jobs:
+                            if url == job['url']:
+                                duplicate_check = True
+                        if duplicate_check == False:
+                            potential_jobs.append({'url': url, 'score': result['score'],'title': title})
+        # Update prevcount so always comparing page number information with previous page's information
+        prevcount = count
+        # update progress bar
+        time.sleep(0.1)
+        printProgressBar(i + 10, 1010, prefix = 'Progress:', suffix = 'Complete', length = 100)
+    return potential_jobs
+
+
+# Click command for command line tool
+@click.command()
+@click.argument('keyword')
+@click.option('--location', '-l', help='Your job search location with 25 mile radius (more than one word must be seperated by comma) e.g. hemel,hempstead', default='london', show_default=True)
+@click.option('--extra', '-e', help='Comma seperated list of extra words to search for in the job description e.g. python,javascript,30000', default=None, show_default=True)
+def main(keyword, location, extra):
+    """This script scrapes data from indeed to find entry level programming jobs. Enter keyword or list of comma seperated keywords e.g. software,developer
+    The script will produce a score for any extra words that are provided. The score is higher if more words are found in the description. The scrape will also provide list of urls for entry level jobs."""
+    f = pyfiglet.figlet_format('Indeed Entry level IT Jobs')
+    print(f)
+    potential_jobs = search_indeed(keyword, location, extra)
+    potential_jobs.sort(key = lambda x: x['score'])
+    for job in potential_jobs:
+        print(str(job['score']) + ' - ' + job['title'])
+        print(job['url'])
+
+if __name__ == "__main__":
+    main()
