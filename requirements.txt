@@ -1,4 +1,4 @@
 requests
 pyfiglet
-beautifulsoup
+beautifulsoup4
 click
