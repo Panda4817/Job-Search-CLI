@@ -2,14 +2,16 @@
 
 This CLI searches specifically for entry level jobs suitable for people who are self-taught programmers like me.
 
-## Reqirements
+## Requirements
 
-Python packages required: requests, pyfiglet, beautifulsoup, click
+Python packages required: requests, pyfiglet, beautifulsoup4, click
 
 ## Installation
 
 - Install required packages
 - Put program in your path by creating a bin directory in your user’s home directory and then add that to the PATH
+
+Or you can use the dockerfile to create a docker image and run that in a docker container.
 
 ## Usage
 
