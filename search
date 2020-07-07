@@ -52,7 +52,8 @@ avoid = [
     'coming from a similar background where you have experience',
     'expert level',
     'internship',
-    'Work experience in at least',
+    'work experience in at least',
+    'mentoring more junior members'
 ]
 
 # Function to create a progress bar
