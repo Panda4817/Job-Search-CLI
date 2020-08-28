@@ -53,7 +53,11 @@ avoid = [
     'expert level',
     'internship',
     'work experience in at least',
-    'mentoring more junior members'
+    'mentoring more junior members',
+    'at a one off cost of',
+    'relevant technical experience in',
+    'worked closely with',
+    'prior experience in a software development role',
 ]
 
 # Function to create a progress bar
