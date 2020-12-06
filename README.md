@@ -1,6 +1,6 @@
 # Python Indeed Web Scraper CLI
 
-This CLI searches specifically for entry level jobs suitable for people who are self-taught programmers like me.
+This CLI searches specifically for entry level jobs.
 
 ## Requirements
 
@@ -18,10 +18,10 @@ Or you can use the dockerfile to create a docker image and run that in a docker 
 Usage: search [OPTIONS] KEYWORD
 
 This script scrapes data from indeed to find entry level programming jobs.
-Enter keyword or list of comma seperated keywords e.g. software,developer
+Enter keyword or list of comma separated keywords e.g. software,developer
 The script will produce a score for any extra words that are provided. The
 score is higher if more words are found in the description. The scrape
-will also provide list of urls for entry level jobs.
+will also provide list of urls for each matching job listing.
 
 Options:
 - -l, --location TEXT  Your job search location with 25 mile radius (more than
@@ -29,4 +29,5 @@ Options:
                        hemel,hempstead  [default: london]
 - -e, --extra TEXT     Comma seperated list of extra words to search for in
                        the job description e.g. python,javascript,30000
+- -p, --page INTEGER   Select a page number  [default: 0]
 - --help               Show this message and exit.
